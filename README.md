@@ -96,15 +96,27 @@ npm start
 ```env
 NODE_ENV=production
 JWT_SECRET=seu_jwt_secret_super_seguro_para_producao
-FRONTEND_URL=https://seu-frontend.netlify.app
+FRONTEND_URL=https://frolicking-kataifi-8520fe.netlify.app
 PORT=10000
+
+# Supabase Configuration
+SUPABASE_URL=https://juchgfjkumosssymubev.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_ANON_KEY=your_anon_key
+
+# Database Configuration
+DB_HOST=aws-0-sa-east-1.pooler.supabase.com
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=your_db_password
 ```
 
 ### 3. URL do Backend
 
 Após o deploy, sua API estará disponível em:
 ```
-https://seu-app.onrender.com
+https://feliquiz-backend.onrender.com
 ```
 
 ## 📡 Endpoints da API

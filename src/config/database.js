@@ -11,7 +11,9 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables');
+  console.error('Missing Supabase environment variables');
+  console.log('SUPABASE_URL:', supabaseUrl ? 'Set' : 'Missing');
+  console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'Set' : 'Missing');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -37,18 +39,28 @@ export const pool = new Pool({
 // Test database connection
 export const testConnection = async () => {
   try {
+    console.log('🔍 Testing database connections...');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('DB Host:', process.env.DB_HOST);
+    console.log('DB Name:', process.env.DB_NAME);
+    console.log('DB User:', process.env.DB_USER);
+    
     const client = await pool.connect();
     console.log('✅ PostgreSQL connected successfully');
     client.release();
     
     // Test Supabase connection
     const { data, error } = await supabase.from('users').select('count').limit(1);
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase connection error:', error);
+      throw error;
+    }
     console.log('✅ Supabase connected successfully');
     
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
+    console.error('Full error:', error);
     return false;
   }
 };

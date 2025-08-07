@@ -54,7 +54,27 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV,
+    version: '1.0.0',
+    database: 'Connected',
+    frontend: process.env.FRONTEND_URL
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'FeliQuiz Backend API',
+    version: '1.0.0',
+    status: 'Running',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      users: '/api/users',
+      quizzes: '/api/quizzes',
+      manifesto: '/api/manifesto'
+    },
+    documentation: 'https://github.com/feliciano/feliquiz'
   });
 });
 
@@ -85,10 +105,14 @@ app.listen(PORT, async () => {
   console.log(`🚀 FeliQuiz Backend running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
   console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}`);
+  console.log(`🔗 Backend URL: https://feliquiz-backend.onrender.com`);
+  console.log(`📡 API Base: https://feliquiz-backend.onrender.com/api`);
   
   // Test database connection
   const dbConnected = await testConnection();
   if (!dbConnected) {
     console.error('⚠️  Database connection failed - some features may not work');
+  } else {
+    console.log('✅ All systems ready!');
   }
 });

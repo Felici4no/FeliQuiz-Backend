@@ -13,6 +13,14 @@ export const authenticateToken = (req, res, next) => {
       });
     }
 
+    if (!process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET not configured');
+      return res.status(500).json({ 
+        error: 'Server configuration error',
+        code: 'CONFIG_ERROR'
+      });
+    }
+
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
         console.error('Token verification error:', err);
@@ -37,6 +45,7 @@ export const authenticateToken = (req, res, next) => {
         });
       }
       
+      console.log('✅ Token verified for user:', user.username);
       req.user = user;
       next();
     });

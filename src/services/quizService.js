@@ -4,6 +4,8 @@ export class QuizService {
   // Get all quizzes with filters
   static async getQuizzes(filters = {}) {
     try {
+      console.log('📚 Loading quizzes with filters:', filters);
+
       let query = supabase
         .from('quizzes')
         .select(`
@@ -39,6 +41,7 @@ export class QuizService {
       const { data, error } = await query;
 
       if (error) {
+        console.error('Database error loading quizzes:', error);
         throw error;
       }
 
@@ -49,6 +52,7 @@ export class QuizService {
         return new Date(quiz.expires_at) > now;
       });
 
+      console.log('✅ Loaded', activeQuizzes.length, 'active quizzes');
       return { quizzes: activeQuizzes, error: null };
     } catch (error) {
       console.error('Get quizzes error:', error);

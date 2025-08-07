@@ -65,6 +65,8 @@ export class AuthService {
     try {
       const { name, username, email, password } = userData;
 
+      console.log('🔐 Attempting to register user:', { name, username, email });
+
       // Input validation
       if (!name || name.trim().length < 2) {
         throw new Error('Name must be at least 2 characters');
@@ -107,6 +109,7 @@ export class AuthService {
 
       // Hash password
       const hashedPassword = await this.hashPassword(password);
+      console.log('🔒 Password hashed successfully');
 
       // Create user
       const { data: newUser, error: createError } = await supabase
@@ -130,8 +133,11 @@ export class AuthService {
         throw new Error('Failed to create user account');
       }
 
+      console.log('✅ User created successfully:', newUser.username);
+
       // Generate token
       const token = this.generateToken(newUser);
+      console.log('🎫 JWT token generated');
 
       // Remove password hash from response
       const { password_hash, ...userResponse } = newUser;
@@ -154,6 +160,8 @@ export class AuthService {
   // Login user
   static async login(emailOrUsername, password) {
     try {
+      console.log('🔐 Attempting login for:', emailOrUsername);
+
       // Input validation
       if (!emailOrUsername || !emailOrUsername.trim()) {
         throw new Error('Email or username is required');
@@ -176,16 +184,21 @@ export class AuthService {
       }
 
       if (!users || users.length === 0) {
+        console.log('❌ User not found:', emailOrUsername);
         throw new Error('Invalid credentials');
       }
 
       const user = users[0];
+      console.log('👤 User found:', user.username);
 
       // Verify password
       const isValidPassword = await this.verifyPassword(password, user.password_hash);
       if (!isValidPassword) {
+        console.log('❌ Invalid password for user:', user.username);
         throw new Error('Invalid credentials');
       }
+
+      console.log('✅ Password verified for user:', user.username);
 
       // Update last login
       await supabase
@@ -203,8 +216,11 @@ export class AuthService {
         .eq('user_id', user.id)
         .order('earned_at', { ascending: false });
 
+      console.log('🏆 Loaded', badges?.length || 0, 'badges for user');
+
       // Generate token
       const token = this.generateToken(user);
+      console.log('🎫 JWT token generated for user:', user.username);
 
       // Remove password hash from response
       const { password_hash, ...userResponse } = user;
