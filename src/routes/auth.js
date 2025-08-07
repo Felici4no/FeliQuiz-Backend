@@ -1,136 +1,207 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { authenticateToken } from '../middleware/auth.js';
-import { mockUsers } from '../data/mockData.js';
+import { AuthService } from '../services/authService.js';
 
 const router = express.Router();
 
 // Register endpoint
 router.post('/register', [
-  body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
-  body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
-  body('email').isEmail().withMessage('Must be a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+  body('name')
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage('Name must be between 2 and 100 characters')
+    .matches(/^[a-zA-ZÀ-ÿ\s]+$/)
+    .withMessage('Name can only contain letters and spaces'),
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 20 })
+    .withMessage('Username must be between 3 and 20 characters')
+    .matches(/^[a-z0-9_]+$/)
+    .withMessage('Username can only contain lowercase letters, numbers, and underscores'),
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Must be a valid email address'),
+  body('password')
+    .isLength({ min: 6, max: 128 })
+    .withMessage('Password must be between 6 and 128 characters')
+    .matches(/^(?=.*[a-z])(?=.*\d)/)
+    .withMessage('Password must contain at least one letter and one number')
 ], async (req, res) => {
   try {
+    // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array()
+      });
     }
 
     const { name, username, email, password } = req.body;
 
-    // Check if user already exists
-    const existingUser = mockUsers.find(u => u.username === username || u.email === email);
-    if (existingUser) {
-      return res.status(400).json({ error: 'User already exists' });
+    // Register user
+    const { user, token, error } = await AuthService.register({
+      name,
+      username: username.toLowerCase(),
+      email: email.toLowerCase(),
+      password
+    });
+
+    if (error) {
+      return res.status(400).json({ error });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      username: username.toLowerCase(),
-      name,
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      profilePicture: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-      feliCoins: 500,
-      badges: [],
-      createdAt: new Date().toISOString()
-    };
-
-    mockUsers.push(newUser);
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: newUser.id, username: newUser.username },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    // Remove password from response
-    const { password: _, ...userResponse } = newUser;
-
     res.status(201).json({
-      message: 'User created successfully',
-      user: userResponse,
+      message: 'User registered successfully',
+      user,
       token
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Login endpoint
 router.post('/login', [
-  body('email').trim().notEmpty().withMessage('Email/username is required'),
-  body('password').notEmpty().withMessage('Password is required')
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email or username is required'),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required')
 ], async (req, res) => {
   try {
+    // Check validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array()
+      });
     }
 
     const { email, password } = req.body;
 
-    // Find user by email or username
-    const user = mockUsers.find(u => 
-      u.email === email.toLowerCase() || 
-      u.username === email.toLowerCase()
-    );
+    // Login user
+    const { user, token, error } = await AuthService.login(email.trim(), password);
 
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    if (error) {
+      return res.status(401).json({ error });
     }
-
-    // Check password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user.id, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    // Remove password from response
-    const { password: _, ...userResponse } = user;
 
     res.json({
       message: 'Login successful',
-      user: userResponse,
+      user,
       token
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Get current user
-router.get('/me', authenticateToken, (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const user = mockUsers.find(u => u.id === req.user.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    const { user, error } = await AuthService.getCurrentUser(req.user.userId);
+    
+    if (error) {
+      return res.status(404).json({ error });
     }
 
-    const { password: _, ...userResponse } = user;
-    res.json({ user: userResponse });
+    res.json({ user });
   } catch (error) {
-    console.error('Get user error:', error);
+    console.error('Get current user endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Password reset request
+router.post('/reset-password', [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Must be a valid email address')
+], async (req, res) => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { email } = req.body;
+    
+    const { message, error } = await AuthService.resetPassword(email);
+    
+    if (error) {
+      return res.status(500).json({ error });
+    }
+
+    res.json({ message });
+  } catch (error) {
+    console.error('Password reset endpoint error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Change password (authenticated)
+router.post('/change-password', authenticateToken, [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 6, max: 128 })
+    .withMessage('New password must be between 6 and 128 characters')
+    .matches(/^(?=.*[a-z])(?=.*\d)/)
+    .withMessage('New password must contain at least one letter and one number')
+], async (req, res) => {
+  try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    
+    const { message, error } = await AuthService.changePassword(
+      req.user.userId,
+      currentPassword,
+      newPassword
+    );
+
+    if (error) {
+      return res.status(400).json({ error });
+    }
+
+    res.json({ message });
+  } catch (error) {
+    console.error('Change password endpoint error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Validate token endpoint (for frontend to check token validity)
+router.get('/validate', authenticateToken, (req, res) => {
+  res.json({ 
+    valid: true, 
+    user: {
+      userId: req.user.userId,
+      username: req.user.username,
+      email: req.user.email
+    }
+  });
 });
 
 export default router;

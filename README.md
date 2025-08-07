@@ -1,11 +1,10 @@
 # FeliQuiz Backend API
 
-Backend Node.js/Express para o FeliQuiz com autenticação JWT, PostgreSQL e APIs RESTful.
+Backend Node.js/Express para o FeliQuiz com autenticação JWT, dados mockados e APIs RESTful completas.
 
 ## 🚀 Tecnologias
 
 - **Node.js** + **Express.js**
-- **PostgreSQL** com connection pooling
 - **JWT** para autenticação
 - **bcryptjs** para hash de senhas
 - **CORS** e **Helmet** para segurança
@@ -18,15 +17,19 @@ Backend Node.js/Express para o FeliQuiz com autenticação JWT, PostgreSQL e API
 backend/
 ├── src/
 │   ├── routes/          # Rotas da API
+│   │   ├── auth.js      # Autenticação (login, registro, reset)
+│   │   ├── users.js     # Perfis de usuários
+│   │   ├── quizzes.js   # Quizzes e submissões
+│   │   └── manifesto.js # Likes do manifesto
 │   ├── middleware/      # Middlewares (auth, etc)
-│   ├── data/           # Dados mock (temporário)
+│   ├── data/           # Dados mockados
 │   └── server.js       # Servidor principal
-├── config/             # Configurações
 ├── package.json
-└── .env.example
+├── .env.example
+└── README.md
 ```
 
-## 🛠️ Setup
+## 🛠️ Setup Local
 
 ### 1. Instalar Dependências
 
@@ -46,12 +49,7 @@ Edite o arquivo `.env`:
 ```env
 PORT=3001
 NODE_ENV=development
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=feliquiz_db
-DB_USER=feliquiz_user
-DB_PASSWORD=sua_senha
-JWT_SECRET=seu_jwt_secret_super_seguro
+JWT_SECRET=seu_jwt_secret_super_seguro_minimo_32_caracteres
 JWT_EXPIRES_IN=7d
 FRONTEND_URL=http://localhost:5173
 ```
@@ -68,43 +66,91 @@ npm run dev
 npm start
 ```
 
+### 4. Popular o Banco de Dados
+
+```bash
+npm run seed
+```
+
+## 🚀 Deploy no Render
+
+### 1. Preparação
+
+1. Faça push do código para um repositório Git
+2. Conecte o repositório ao Render
+3. Configure as variáveis de ambiente
+
+### 2. Configuração no Render
+
+**Build Command:**
+```bash
+npm install
+```
+
+**Start Command:**
+```bash
+npm start
+```
+
+**Environment Variables:**
+```env
+NODE_ENV=production
+JWT_SECRET=seu_jwt_secret_super_seguro_para_producao
+FRONTEND_URL=https://seu-frontend.netlify.app
+PORT=10000
+```
+
+### 3. URL do Backend
+
+Após o deploy, sua API estará disponível em:
+```
+https://seu-app.onrender.com
+```
+
 ## 📡 Endpoints da API
 
 ### Autenticação (`/api/auth`)
 
 ```http
-POST /api/auth/register
-POST /api/auth/login
-GET  /api/auth/me
+POST /api/auth/register          # Criar conta
+POST /api/auth/login             # Fazer login
+GET  /api/auth/me                # Dados do usuário atual
+POST /api/auth/reset-password    # Solicitar reset de senha
+POST /api/auth/change-password   # Alterar senha
 ```
 
 ### Usuários (`/api/users`)
 
 ```http
-GET  /api/users/:username
-PUT  /api/users/profile
+GET  /api/users/:username           # Perfil público
+PUT  /api/users/profile             # Atualizar perfil
+GET  /api/users/:username/submissions # Submissões do usuário
+PATCH /api/users/:id/coins          # Atualizar FeliCoins
+POST /api/users/:id/badges          # Adicionar badge
 ```
 
 ### Quizzes (`/api/quizzes`)
 
 ```http
-GET  /api/quizzes
-GET  /api/quizzes/:id
-POST /api/quizzes/:id/submit
+GET  /api/quizzes                   # Listar quizzes (com filtros)
+GET  /api/quizzes/:id               # Quiz específico
+POST /api/quizzes/:id/submit        # Submeter resultado
+GET  /api/quizzes/:id/stats         # Estatísticas do quiz
+GET  /api/quizzes/meta/topics       # Tópicos disponíveis
 ```
 
 ### Manifesto (`/api/manifesto`)
 
 ```http
-GET  /api/manifesto/likes
-POST /api/manifesto/like
-GET  /api/manifesto/like/status
+GET  /api/manifesto/likes           # Total de likes
+POST /api/manifesto/like            # Curtir/descurtir
+GET  /api/manifesto/like/status     # Status do like do usuário
 ```
 
 ### Health Check
 
 ```http
-GET /api/health
+GET /api/health                     # Status da API
 ```
 
 ## 🔐 Autenticação
@@ -112,7 +158,7 @@ GET /api/health
 ### Registro
 
 ```bash
-curl -X POST http://localhost:3001/api/auth/register \
+curl -X POST https://seu-app.onrender.com/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "João Silva",
@@ -125,7 +171,7 @@ curl -X POST http://localhost:3001/api/auth/register \
 ### Login
 
 ```bash
-curl -X POST http://localhost:3001/api/auth/login \
+curl -X POST https://seu-app.onrender.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "joao@example.com",
@@ -137,8 +183,28 @@ curl -X POST http://localhost:3001/api/auth/login \
 
 ```bash
 curl -H "Authorization: Bearer SEU_JWT_TOKEN" \
-  http://localhost:3001/api/auth/me
+  https://seu-app.onrender.com/api/auth/me
 ```
+
+## 🎮 Funcionalidades Implementadas
+
+### Sistema de Quizzes
+- **Tipos**: Padrão, Temporário, Relâmpago
+- **Filtros**: Categoria, tipo, tópico, subtópico
+- **Expiração**: Quizzes temporários com data limite
+- **Modo visitante**: Quizzes gratuitos sem login
+
+### Sistema de Usuários
+- **Autenticação completa**: Registro, login, reset de senha
+- **Perfis públicos**: Visualização de badges e estatísticas
+- **FeliCoins**: Sistema de moeda gamificada
+- **Badges**: Conquistas por completar quizzes
+
+### Sistema de Gamificação
+- **FeliCoins escassos**: Usuários começam com 10 moedas
+- **Custo por quiz**: 5 FeliCoins para jogar
+- **Recompensas variáveis**: 10-30 FeliCoins por resultado
+- **Badges colecionáveis**: Diferentes valores e raridades
 
 ## 🛡️ Segurança
 
@@ -149,70 +215,40 @@ curl -H "Authorization: Bearer SEU_JWT_TOKEN" \
 - **bcrypt**: Hash seguro de senhas
 - **Validação**: Dados validados com express-validator
 
-## 📊 Monitoramento
+## 📊 Dados Mockados
 
-### Health Check
+O backend usa dados mockados que simulam:
+- **3 usuários** com diferentes perfis
+- **3 quizzes** de tipos diferentes
+- **Submissões** e histórico de quizzes
+- **Sistema de likes** do manifesto
+- **Tópicos e subtópicos** para categorização
 
-```bash
-curl http://localhost:3001/api/health
-```
+## 🔄 Migração para Banco Real
 
-Resposta:
-```json
-{
-  "status": "OK",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "environment": "development"
-}
-```
+Para migrar para um banco de dados real:
 
-## 🚀 Deploy
+1. **Escolha o banco**: PostgreSQL, MongoDB, etc.
+2. **Substitua os mocks**: Implemente queries reais
+3. **Mantenha as APIs**: Mesma interface, implementação diferente
+4. **Configure conexão**: Adicione string de conexão no .env
 
-### Variáveis de Ambiente para Produção
+## 🤝 Integração com Frontend
+
+O frontend deve apontar para a URL do backend:
 
 ```env
-NODE_ENV=production
-PORT=3001
-DB_HOST=seu_host_postgres
-DB_PASSWORD=senha_super_segura
-JWT_SECRET=jwt_secret_super_seguro_64_chars_minimo
-FRONTEND_URL=https://seu-frontend.com
+# Frontend .env
+VITE_API_URL=https://seu-app.onrender.com/api
 ```
 
-### Docker (Opcional)
+## 📝 Logs e Monitoramento
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 3001
-CMD ["npm", "start"]
-```
+- **Logs de erro**: Console.error para debugging
+- **Health check**: Endpoint para verificar status
+- **Rate limiting**: Proteção contra spam
 
-## 🔧 Scripts Disponíveis
-
-```bash
-npm run dev      # Desenvolvimento com nodemon
-npm start        # Produção
-npm run migrate  # Executar migrações (futuro)
-npm run seed     # Executar seeds (futuro)
-```
-
-## 📝 Logs
-
-Em desenvolvimento, todos os erros são logados no console.
-Em produção, considere usar ferramentas como:
-
+Para produção, considere:
 - **Winston** para logging estruturado
-- **Morgan** para logs de HTTP
+- **Morgan** para logs HTTP
 - **Sentry** para monitoramento de erros
-
-## 🤝 Contribuição
-
-1. Faça fork do projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request

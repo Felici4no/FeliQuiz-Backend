@@ -1,14 +1,14 @@
 {
   "name": "feliquiz-backend",
   "version": "1.0.0",
-  "description": "FeliQuiz Backend API",
+  "description": "FeliQuiz Backend API - Sistema de quizzes gamificado",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "migrate": "node database/migrations/run.js",
-    "seed": "node database/seeds/run.js"
+    "seed": "node src/scripts/seedDatabase.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -19,13 +19,24 @@
     "jsonwebtoken": "^9.0.2",
     "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
-    "pg": "^8.11.3",
-    "pg-pool": "^3.6.1"
+    "@supabase/supabase-js": "^2.50.5",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "@types/pg": "^8.10.9"
   },
-  "keywords": ["quiz", "api", "nodejs", "express"],
+  "keywords": [
+    "quiz",
+    "api",
+    "nodejs",
+    "express",
+    "gamification",
+    "feliquiz"
+  ],
   "author": "Lucas Feliciano",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

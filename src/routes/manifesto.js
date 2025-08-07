@@ -1,20 +1,22 @@
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, optionalAuth } from '../middleware/auth.js';
+import { ManifestoService } from '../services/manifestoService.js';
 
 const router = express.Router();
 
-// Mock data for manifesto likes
-let manifestoData = {
-  likes: 1247,
-  userLikes: new Set() // In real app, this would be in database
-};
-
-// Get manifesto likes
-router.get('/likes', (req, res) => {
+// Get manifesto likes count
+router.get('/likes', optionalAuth, async (req, res) => {
   try {
+    const userId = req.user?.userId || null;
+    const { totalLikes, hasLiked, error } = await ManifestoService.getLikesInfo(userId);
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to get likes info' });
+    }
+    
     res.json({ 
-      likes: manifestoData.likes,
-      totalLikes: manifestoData.likes 
+      totalLikes,
+      hasLiked
     });
   } catch (error) {
     console.error('Get manifesto likes error:', error);
@@ -22,25 +24,19 @@ router.get('/likes', (req, res) => {
   }
 });
 
-// Toggle like on manifesto
-router.post('/like', authenticateToken, (req, res) => {
+// Toggle like on manifesto (requires authentication)
+router.post('/like', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    
-    if (manifestoData.userLikes.has(userId)) {
-      // Remove like
-      manifestoData.userLikes.delete(userId);
-      manifestoData.likes--;
-    } else {
-      // Add like
-      manifestoData.userLikes.add(userId);
-      manifestoData.likes++;
+    const { totalLikes, hasLiked, error } = await ManifestoService.toggleLike(req.user.userId);
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to toggle like' });
     }
 
     res.json({
       message: 'Like toggled successfully',
-      likes: manifestoData.likes,
-      hasLiked: manifestoData.userLikes.has(userId)
+      totalLikes,
+      hasLiked
     });
   } catch (error) {
     console.error('Toggle manifesto like error:', error);
@@ -49,14 +45,17 @@ router.post('/like', authenticateToken, (req, res) => {
 });
 
 // Check if user has liked manifesto
-router.get('/like/status', authenticateToken, (req, res) => {
+router.get('/like/status', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const hasLiked = manifestoData.userLikes.has(userId);
+    const { totalLikes, hasLiked, error } = await ManifestoService.getLikesInfo(req.user.userId);
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to get like status' });
+    }
     
     res.json({ 
       hasLiked,
-      likes: manifestoData.likes 
+      totalLikes 
     });
   } catch (error) {
     console.error('Get like status error:', error);
